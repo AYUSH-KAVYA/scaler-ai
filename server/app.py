@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fastapi import FastAPI, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from openenv.core.env_server.http_server import create_app
 
 try:
@@ -27,11 +28,24 @@ logger = logging.getLogger(__name__)
 GLOBAL_ENV = NeonGridEnvironment()
 
 # Create the standard OpenEnv app
-app = create_app(
+app = FastAPI()
+
+# Add CORS support for remote machine access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize OpenEnv endpoints
+base_app = create_app(
     NeonGridEnvironment,
     GridAction,
     GridObservation,
 )
+app.mount("/api", base_app) # Keep spec routes namespaced
 
 # Overwrite /reset and /step to use our GLOBAL_ENV for the dashboard
 @app.post("/reset", tags=["Environment Control"])
