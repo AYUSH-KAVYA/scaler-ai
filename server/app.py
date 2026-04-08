@@ -28,7 +28,11 @@ logger = logging.getLogger(__name__)
 GLOBAL_ENV = NeonGridEnvironment()
 
 # Create the standard OpenEnv app
-app = FastAPI()
+app = create_app(
+    NeonGridEnvironment,
+    GridAction,
+    GridObservation,
+)
 
 # Add CORS support for remote machine access
 app.add_middleware(
@@ -38,14 +42,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize OpenEnv endpoints
-base_app = create_app(
-    NeonGridEnvironment,
-    GridAction,
-    GridObservation,
-)
-app.mount("/api", base_app) # Keep spec routes namespaced
 
 # Overwrite /reset and /step to use our GLOBAL_ENV for the dashboard
 @app.post("/reset", tags=["Environment Control"])
