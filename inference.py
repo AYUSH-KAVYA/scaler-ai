@@ -1,25 +1,28 @@
-import asyncio
+"""
+NeonGrid AI Energy Architect — Inference Script
+Connects to the deployed OpenEnv environment via HTTP and runs an AI agent.
+"""
 import os
-import textwrap
-import json
 import sys
+import json
+import requests
 from typing import List, Optional
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    pass  # dotenv not required — env vars are set directly by the checker
-
+    pass
 
 from openai import OpenAI
-from models import GridAction
 
-# Use a model that has better availability or clear free-tier access if possible
-# Or shifting to a more robust model name example
-# Environment Configuration
+# ── Environment Configuration ──────────────────────────────────────
 HF_TOKEN = os.getenv("HF_TOKEN")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct") 
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+
+# The URL of the deployed environment (HF Space or local)
+ENV_URL = os.getenv("ENV_URL", "https://ayush-kr-neongrid-env.hf.space")
 
 if not HF_TOKEN:
     print("[ERROR] HF_TOKEN environment variable not set. Aborting.")
@@ -32,28 +35,24 @@ TEMPERATURE = 0.0
 MAX_TOKENS = 150
 SUCCESS_SCORE_THRESHOLD = 0.5
 
-SYSTEM_PROMPT = textwrap.dedent(
-    """
-    You are the AI Energy Architect for NeonGrid.
-    Your goal is to manage a city's energy to maximize citizen comfort while minimizing grid costs.
-    
-    ACTION SCHEMA:
-    {
-      "consumption_mode": "low" | "normal" | "high",
-      "battery_mode": "charge" | "discharge" | "idle",
-      "source_priority": "solar" | "grid"
-    }
-    
-    TIPS:
-    - If grid_price is high (>= 0.3), use "low" consumption and "discharge" the battery.
-    - If grid_price is low (< 0.3) and solar is high, use "normal" or "high" consumption and "charge" the battery.
-    
-    DIRECTIVE SYSTEM:
-    If the user provides a "directives" string, PRIORITIZE it over all other logic.
-    Always respond with a valid JSON object.
-    """
-).strip()
+# ── System Prompt ──────────────────────────────────────────────────
+SYSTEM_PROMPT = """You are the AI Energy Architect for NeonGrid.
+Your goal is to manage a city's energy to maximize citizen comfort while minimizing grid costs.
 
+ACTION SCHEMA (respond with ONLY this JSON, no extra text):
+{
+  "consumption_mode": "low" | "normal" | "high",
+  "battery_mode": "charge" | "discharge" | "idle",
+  "source_priority": "solar" | "grid"
+}
+
+TIPS:
+- If grid_price is high (>= 0.3), use "low" consumption and "discharge" the battery.
+- If grid_price is low (< 0.3) and solar is high, use "normal" or "high" consumption and "charge" the battery.
+- If there is a "directives" string, PRIORITIZE it over all other logic.
+Always respond with a valid JSON object only."""
+
+# ── Logging (strict OpenEnv format) ────────────────────────────────
 def log_start(task: str, env: str, model: str) -> None:
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
@@ -66,33 +65,46 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
-def build_user_prompt(obs) -> str:
-    return json.dumps({
-        "time": obs.current_time,
-        "grid_price": obs.grid_price,
-        "solar": obs.solar_output,
-        "battery": obs.battery_level,
-        "comfort": obs.comfort_index,
-        "weather": obs.weather,
-        "status": obs.status_message,
-        "directives": obs.directives
-    })
+# ── Environment HTTP Client ────────────────────────────────────────
+def env_reset(base_url: str) -> dict:
+    """POST /reset to the environment and return the observation."""
+    resp = requests.post(f"{base_url}/reset", json={}, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get("observation", data)
 
-def parse_action(text: str) -> GridAction:
+def env_step(base_url: str, action: dict) -> dict:
+    """POST /step to the environment and return the full response."""
+    resp = requests.post(f"{base_url}/step", json={"action": action}, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    return data
+
+# ── Action Parsing ─────────────────────────────────────────────────
+def parse_action(text: str) -> dict:
+    """Parse the LLM response into an action dict."""
     try:
-        # Extract json safely if model wraps in markdown
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
-        data = json.loads(text)
-        return GridAction(**data)
-    except:
-        # Fallback heuristic logic if API fails or model halucinates
-        if "high" in text.lower():
-            return GridAction(consumption_mode="low", battery_mode="discharge", source_priority="solar")
-        return GridAction(consumption_mode="normal", battery_mode="idle", source_priority="solar")
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+        return json.loads(text)
+    except Exception:
+        # Fallback heuristic
+        return {"consumption_mode": "normal", "battery_mode": "idle", "source_priority": "solar"}
 
-async def get_model_action(client: OpenAI, obs) -> GridAction:
-    user_prompt = build_user_prompt(obs)
+def get_model_action(client: OpenAI, obs: dict) -> dict:
+    """Call the LLM to decide the next action based on the observation."""
+    user_prompt = json.dumps({
+        "time": obs.get("current_time", ""),
+        "grid_price": obs.get("grid_price", 0),
+        "solar": obs.get("solar_output", 0),
+        "battery": obs.get("battery_level", 0),
+        "comfort": obs.get("comfort_index", 0),
+        "weather": obs.get("weather", ""),
+        "status": obs.get("status_message", ""),
+        "directives": obs.get("directives", None),
+    })
     try:
         completion = client.chat.completions.create(
             model=MODEL_NAME,
@@ -106,18 +118,17 @@ async def get_model_action(client: OpenAI, obs) -> GridAction:
         )
         text = (completion.choices[0].message.content or "").strip()
         return parse_action(text)
-    except Exception as exc:
-        # If API errors (like 402), return a heuristic action to keep the env running
-        if "grid_price" in locals() and obs.grid_price >= 0.3:
-            return GridAction(consumption_mode="low", battery_mode="discharge", source_priority="solar")
-        return GridAction(consumption_mode="normal", battery_mode="charge", source_priority="solar")
+    except Exception:
+        # Heuristic fallback if API fails
+        price = obs.get("grid_price", 0)
+        if price >= 0.3:
+            return {"consumption_mode": "low", "battery_mode": "discharge", "source_priority": "solar"}
+        return {"consumption_mode": "normal", "battery_mode": "charge", "source_priority": "solar"}
 
-async def main():
+# ── Main Loop ──────────────────────────────────────────────────────
+def main():
     client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
-    
-    from server.environment import NeonGridEnvironment
-    env_instance = NeonGridEnvironment()
-    
+
     rewards: List[float] = []
     steps_taken = 0
     score = 0.0
@@ -126,34 +137,33 @@ async def main():
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
     try:
-        obs = env_instance.reset()
-        
+        obs = env_reset(ENV_URL)
+
         for step in range(1, MAX_STEPS + 1):
-            if obs.done:
-                break
-                
-            action = await get_model_action(client, obs)
-            action_str = f"cons:{action.consumption_mode},batt:{action.battery_mode}"
-            
-            obs = env_instance.step(action)
-            
-            reward = obs.reward or 0.0
-            done = obs.done
-            
+            action = get_model_action(client, obs)
+            action_str = f"cons:{action.get('consumption_mode','?')},batt:{action.get('battery_mode','?')}"
+
+            resp = env_step(ENV_URL, action)
+            obs = resp.get("observation", resp)
+            reward = resp.get("reward", 0.0) or 0.0
+            done = resp.get("done", False)
+
             rewards.append(reward)
             steps_taken = step
-            
+
             log_step(step=step, action=action_str, reward=reward, done=done, error=None)
-            
+
             if done:
                 break
-                
-        # Calculate normalized score [0, 1]
+
         score = sum(rewards) / len(rewards) if rewards else 0.0
         success = score >= SUCCESS_SCORE_THRESHOLD
-        
+
+    except Exception as e:
+        print(f"[ERROR] {e}", flush=True)
+
     finally:
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

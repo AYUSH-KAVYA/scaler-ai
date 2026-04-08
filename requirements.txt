@@ -1,5 +1,2 @@
-openenv-core
-fastapi
-pydantic
-uvicorn
 openai
+requests
