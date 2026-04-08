@@ -45,20 +45,26 @@ app.add_middleware(
 
 # Overwrite /reset and /step to use our GLOBAL_ENV for the dashboard
 @app.post("/reset", tags=["Environment Control"])
-async def dashboard_reset(task: str = Body(default="easy")):
+async def dashboard_reset(task: str = "easy"):
     # Set task level and reset the global instance
     os.environ["SUPPORT_TASK"] = task
     obs = GLOBAL_ENV.reset()
-    return {"observation": obs.model_dump()}
+    # Return both flat and nested for maximum compatibility with dashboard and automated tools
+    res = obs.model_dump()
+    res["observation"] = obs.model_dump()
+    return res
 
 @app.post("/step", tags=["Environment Control"])
-async def dashboard_step(action: dict = Body(...)):
+async def dashboard_step(payload: dict = Body(...)):
     # Parse action and step the global instance
     # OpenEnv standard sends {"action": {...}}
-    action_data = action.get("action", action)
+    action_data = payload.get("action", payload)
     grid_action = GridAction(**action_data)
     obs = GLOBAL_ENV.step(grid_action)
-    return {"observation": obs.model_dump()}
+    # Return both flat and nested
+    res = obs.model_dump()
+    res["observation"] = obs.model_dump()
+    return res
 
 @app.post("/command", tags=["Environment Control"])
 async def dashboard_command(payload: dict = Body(...)):
