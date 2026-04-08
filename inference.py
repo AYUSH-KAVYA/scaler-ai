@@ -3,6 +3,7 @@ NeonGrid AI Energy Architect — Inference Script
 Connects to the deployed OpenEnv environment via HTTP and runs an AI agent.
 Uses only stdlib + openai (the only allowed external dependency).
 """
+import subprocess
 import os
 import sys
 import json
@@ -16,7 +17,13 @@ try:
 except ImportError:
     pass
 
-from openai import OpenAI
+# Auto-install openai if not available
+try:
+    from openai import OpenAI
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "openai", "-q"])
+    from openai import OpenAI
+
 
 # ── Environment Configuration ──────────────────────────────────────
 HF_TOKEN = os.getenv("HF_TOKEN")
