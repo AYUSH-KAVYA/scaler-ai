@@ -5,7 +5,7 @@ import sys
 # Ensure the root directory is in the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,9 +22,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # --- PERSISTENT STATE LOGIC FOR FRONTEND ---
-# The standard 'create_app' is stateless over HTTP. 
-# For your "Legendary" dashboard, we'll maintain a single persistent environment instance
-# so that your clicks actually change the state!
 GLOBAL_ENV = NeonGridEnvironment()
 
 # Create the standard OpenEnv app
@@ -45,23 +42,38 @@ app.add_middleware(
 
 # Overwrite /reset and /step to use our GLOBAL_ENV for the dashboard
 @app.post("/reset", tags=["Environment Control"])
-async def dashboard_reset(task: str = "easy"):
+async def dashboard_reset(request: Request):
+    # Try to get task from query param first, then body
+    task = request.query_params.get("task")
+    if not task:
+        try:
+            body = await request.json()
+            task = body.get("task", "easy")
+        except:
+            task = "easy"
+            
     # Set task level and reset the global instance
     os.environ["SUPPORT_TASK"] = task
     obs = GLOBAL_ENV.reset()
-    # Return both flat and nested for maximum compatibility with dashboard and automated tools
+    
+    # Return both flat and nested for maximum compatibility
     res = obs.model_dump()
     res["observation"] = obs.model_dump()
     return res
 
 @app.post("/step", tags=["Environment Control"])
-async def dashboard_step(payload: dict = Body(...)):
-    # Parse action and step the global instance
-    # OpenEnv standard sends {"action": {...}}
+async def dashboard_step(request: Request):
+    # Support both flat and nested 'action' key
+    try:
+        payload = await request.json()
+    except:
+        payload = {}
+        
     action_data = payload.get("action", payload)
     grid_action = GridAction(**action_data)
     obs = GLOBAL_ENV.step(grid_action)
-    # Return both flat and nested
+    
+    # Return both flat and nested structure
     res = obs.model_dump()
     res["observation"] = obs.model_dump()
     return res
