@@ -1,11 +1,13 @@
 """
 NeonGrid AI Energy Architect — Inference Script
 Connects to the deployed OpenEnv environment via HTTP and runs an AI agent.
+Uses only stdlib + openai (the only allowed external dependency).
 """
 import os
 import sys
 import json
-import requests
+import urllib.request
+import urllib.error
 from typing import List, Optional
 
 try:
@@ -65,24 +67,28 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
-# ── Environment HTTP Client ────────────────────────────────────────
+# ── Environment HTTP Client (stdlib only) ──────────────────────────
+def _post_json(url: str, data: dict) -> dict:
+    """POST JSON to a URL using only stdlib urllib."""
+    payload = json.dumps(data).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
 def env_reset(base_url: str) -> dict:
-    """POST /reset to the environment and return the observation."""
-    resp = requests.post(f"{base_url}/reset", json={}, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
+    data = _post_json(f"{base_url}/reset", {})
     return data.get("observation", data)
 
 def env_step(base_url: str, action: dict) -> dict:
-    """POST /step to the environment and return the full response."""
-    resp = requests.post(f"{base_url}/step", json={"action": action}, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
-    return data
+    return _post_json(f"{base_url}/step", {"action": action})
 
 # ── Action Parsing ─────────────────────────────────────────────────
 def parse_action(text: str) -> dict:
-    """Parse the LLM response into an action dict."""
     try:
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
@@ -90,11 +96,9 @@ def parse_action(text: str) -> dict:
             text = text.split("```")[1].split("```")[0].strip()
         return json.loads(text)
     except Exception:
-        # Fallback heuristic
         return {"consumption_mode": "normal", "battery_mode": "idle", "source_priority": "solar"}
 
 def get_model_action(client: OpenAI, obs: dict) -> dict:
-    """Call the LLM to decide the next action based on the observation."""
     user_prompt = json.dumps({
         "time": obs.get("current_time", ""),
         "grid_price": obs.get("grid_price", 0),
@@ -119,7 +123,6 @@ def get_model_action(client: OpenAI, obs: dict) -> dict:
         text = (completion.choices[0].message.content or "").strip()
         return parse_action(text)
     except Exception:
-        # Heuristic fallback if API fails
         price = obs.get("grid_price", 0)
         if price >= 0.3:
             return {"consumption_mode": "low", "battery_mode": "discharge", "source_priority": "solar"}
