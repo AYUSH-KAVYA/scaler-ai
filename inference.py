@@ -4,10 +4,12 @@ import textwrap
 import json
 import sys
 from typing import List, Optional
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not required — env vars are set directly by the checker
 
-# Load configuration from .env file
-load_dotenv()
 
 from openai import OpenAI
 from models import GridAction
