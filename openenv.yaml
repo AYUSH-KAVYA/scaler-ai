@@ -1,0 +1,13 @@
+spec_version: 1
+name: neongrid_env
+type: space
+runtime: fastapi
+app: server.app:app
+port: 8000
+tasks:
+  - id: easy
+    description: "Bright day with low grid prices. Focus on efficiency."
+  - id: medium
+    description: "Evening peak transition with cloudy weather. Manage battery carefully."
+  - id: hard
+    description: "Stormy conditions during high-demand peak. Minimize grid dependency."

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeonGrid | AI Energy Architect</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="cyberpunk">
+    <div class="scanline"></div>
+    <div class="noise"></div>
+    
+    <div class="glow-bg"></div>
+
+    <div class="app-wrapper">
+        <header class="main-header">
+            <div class="logo">
+                <span class="glitch" data-text="NEONGRID">NEONGRID</span>
+                <span class="subtitle">AI ENERGY ARCHITECT v1.0</span>
+            </div>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <label>SIM TIME</label>
+                    <span id="label-time">--:--</span>
+                </div>
+                <div class="stat-item">
+                    <label>WEATHER</label>
+                    <span id="label-weather" class="neon-text">UNKNOWN</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid-layout">
+            <!-- Left Sidebar: Controls -->
+            <section class="sidebar panel">
+                <div class="panel-header">GRID CONTROL UNIT</div>
+                
+                <div class="control-section">
+                    <h3>TASK PROTOCOL</h3>
+                    <select id="task-select" class="cyber-select">
+                        <option value="easy">BRIGHT DAY (EASY)</option>
+                        <option value="medium">EVENING PEAK (MEDIUM)</option>
+                        <option value="hard">STORM SURGE (HARD)</option>
+                    </select>
+                    <button id="btn-reset" class="cyber-btn primary">INITIALIZE CORE</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>MANUAL OVERRIDE</h3>
+                    <div class="btn-group">
+                        <label>CONSUMPTION</label>
+                        <div class="tri-toggle" id="toggle-consumption">
+                            <button data-val="low">LOW</button>
+                            <button data-val="normal" class="active">NORM</button>
+                            <button data-val="high">HIGH</button>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <label>BATTERY MODE</label>
+                        <div class="tri-toggle" id="toggle-battery">
+                            <button data-val="charge">CHRG</button>
+                            <button data-val="idle" class="active">IDLE</button>
+                            <button data-val="discharge">DSCH</button>
+                        </div>
+                    </div>
+
+                    <button id="btn-step" class="cyber-btn secondary">EXECUTE CYCLE (15m)</button>
+                </div>
+
+                <div class="automation-section">
+                    <button id="btn-autoplay" class="cyber-btn warning">CORE AUTO-PILOT</button>
+                </div>
+            </section>
+
+            <!-- Center: Visualizer -->
+            <section class="visualizer panel">
+                <div class="grid-viz-container">
+                    <div id="grid-canvas-root">
+                        <!-- Canvas or SVG flow will go here -->
+                        <div class="city-core">
+                            <div class="core-pulse"></div>
+                            <div class="building-outline"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="energy-flows">
+                        <div class="flow solar-to-city" id="flow-solar">
+                            <div class="flow-line"></div>
+                            <span class="flow-label">SOLAR</span>
+                        </div>
+                        <div class="flow battery-to-city" id="flow-battery">
+                            <div class="flow-line"></div>
+                            <span class="flow-label">BATTERY</span>
+                        </div>
+                        <div class="flow grid-to-city" id="flow-grid">
+                            <div class="flow-line"></div>
+                            <span class="flow-label">EXTERNAL GRID</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="terminal">
+                    <div class="terminal-header">ENVIRO-FEED</div>
+                    <div id="terminal-log" class="terminal-body">
+                        > Awaiting Core Initialization...
+                    </div>
+                </div>
+
+                <div class="command-console">
+                    <div class="console-header">DIRECTIVE INPUT</div>
+                    <div class="console-wrapper">
+                        <input type="text" id="input-command" placeholder="ENTER ARCHITECT DIRECTIVE..." autocomplete="off">
+                        <button id="btn-transmit" class="cyber-btn primary">TRANSMIT</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Sidebar: Metrics -->
+            <section class="metrics sidebar panel">
+                <div class="panel-header">TELEMETRY</div>
+                
+                <div class="metric-card">
+                    <label>CITIZEN COMFORT</label>
+                    <div class="progress-bar">
+                        <div id="bar-comfort" class="bar-fill" style="width: 100%"></div>
+                    </div>
+                    <span id="val-comfort">100%</span>
+                </div>
+
+                <div class="metric-card">
+                    <label>BATTERY RESERVES</label>
+                    <div class="progress-bar">
+                        <div id="bar-battery" class="bar-fill blue" style="width: 50%"></div>
+                    </div>
+                    <span id="val-battery">50%</span>
+                </div>
+
+                <div class="metric-card numeric">
+                    <div class="sub-metric">
+                        <label>GRID PRICE</label>
+                        <span id="val-price">$0.10</span>
+                    </div>
+                    <div class="sub-metric">
+                        <label>DISTRICT DEMAND</label>
+                        <span id="val-demand">0.0 MW</span>
+                    </div>
+                </div>
+
+                <div class="reward-hub">
+                    <label>SYNC EFFICIENCY (REWARD)</label>
+                    <div id="val-reward" class="reward-val">0.00</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

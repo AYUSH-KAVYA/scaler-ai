@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+scaler-ai_temp/
+outputs/
+.DS_Store

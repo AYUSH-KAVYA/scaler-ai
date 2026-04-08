@@ -1,0 +1,33 @@
+[project]
+name = "neongrid_env"
+version = "0.1.0"
+description = "NeonGrid AI Energy Architect OpenEnv Environment"
+authors = [
+    {name = "AI"}
+]
+dependencies = [
+    "openenv-core>=0.1.0",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "openai",
+    "python-dotenv"
+]
+readme = "README.md"
+requires-python = ">= 3.9"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+server = "server.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["server", "frontend"]
+include = [
+    "models.py",
+    "inference.py",
+    "openenv.yaml",
+    "README.md"
+]
