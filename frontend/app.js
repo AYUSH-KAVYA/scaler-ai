@@ -50,14 +50,15 @@ class NeonGridUI {
             const response = await fetch('/reset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ task: difficulty })
+                body: JSON.stringify({})
             });
             const data = await response.json();
+            // OpenEnv returns {observation: {...}, reward: ..., done: ...}
             this.updateUI(data.observation, data.reward);
             this.log("READY. SYSTEM STABLE.");
         } catch (err) {
             console.error(err);
-            this.log("ERROR: GRID CONNECTION FAILED.");
+            this.log(`ERROR: GRID CONNECTION FAILED [${err.message || 'NET_ERROR'}]`);
         }
     }
 
@@ -68,6 +69,7 @@ class NeonGridUI {
         const battery = document.querySelector('#toggle-battery .active').dataset.val;
         
         try {
+            // OpenEnv Standard POST /step with {action: {...}}
             const response = await fetch('/step', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -80,11 +82,15 @@ class NeonGridUI {
                 })
             });
             const data = await response.json();
-            this.updateUI(data.observation, data.reward);
-            this.log(data.observation.status_message);
+            // OpenEnv returns {observation: {...}, reward: ..., done: ...}
+            const obs = data.observation;
+            obs.done = data.done;
+            this.updateUI(obs, data.reward);
+            this.log(obs.status_message);
         } catch (err) {
             console.error(err);
-            this.log("ERROR: SYNC LOST.");
+            this.log(`ERROR: SYNC LOST [${err.message || 'NET_ERROR'}]`);
+            setTimeout(() => this.log("ATTEMPTING RE-SYNCHRONIZATION..."), 2000);
         }
     }
 

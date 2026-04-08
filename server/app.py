@@ -21,10 +21,8 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- PERSISTENT STATE LOGIC FOR FRONTEND ---
-GLOBAL_ENV = NeonGridEnvironment()
-
-# Create the standard OpenEnv app
+# Create the standard OpenEnv app — this registers /reset, /step, /state etc.
+# We do NOT override these routes so there are no conflicts.
 app = create_app(
     NeonGridEnvironment,
     GridAction,
@@ -40,54 +38,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Overwrite /reset and /step to use our GLOBAL_ENV for the dashboard
-@app.post("/reset", tags=["Environment Control"])
-async def dashboard_reset(request: Request):
-    # Try to get task from query param first, then body
-    task = request.query_params.get("task")
-    if not task:
-        try:
-            body = await request.json()
-            task = body.get("task", "easy")
-        except:
-            task = "easy"
-            
-    # Set task level and reset the global instance
-    os.environ["SUPPORT_TASK"] = task
-    obs = GLOBAL_ENV.reset()
-    
-    # Return both flat and nested for maximum compatibility
-    res = obs.model_dump()
-    res["observation"] = obs.model_dump()
-    return res
+# --- ADDITIONAL ENDPOINTS (non-conflicting) ---
 
-@app.post("/step", tags=["Environment Control"])
-async def dashboard_step(request: Request):
-    # Support both flat and nested 'action' key
-    try:
-        payload = await request.json()
-    except:
-        payload = {}
-        
-    action_data = payload.get("action", payload)
-    grid_action = GridAction(**action_data)
-    obs = GLOBAL_ENV.step(grid_action)
-    
-    # Return both flat and nested structure
-    res = obs.model_dump()
-    res["observation"] = obs.model_dump()
-    return res
+# Persistent env for the command directive feature
+GLOBAL_ENV = NeonGridEnvironment()
 
 @app.post("/command", tags=["Environment Control"])
 async def dashboard_command(payload: dict = Body(...)):
-    # Update the environment directives
+    """Update the environment directives."""
     directive = payload.get("directive", "")
     GLOBAL_ENV.directives = directive
     return {"status": "Directive updated", "directive": directive}
-
-@app.get("/state", tags=["Environment Control"])
-async def dashboard_state():
-    return {"state": GLOBAL_ENV.state.model_dump(), "observation": GLOBAL_ENV._generate_obs("Syncing state").model_dump()}
 
 # --- FRONTEND SERVING ---
 frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -99,7 +60,7 @@ async def read_index():
 # Mount the frontend directory at root (after API routes)
 app.mount("/", StaticFiles(directory=frontend_dir), name="frontend")
 
-logger.info("NeonGrid Architectural Server mounted with Persistent Dashboard Support.")
+logger.info("NeonGrid Architectural Server mounted.")
 
 def main():
     import uvicorn
