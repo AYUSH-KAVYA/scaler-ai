@@ -64,7 +64,10 @@ logger.info("NeonGrid Architectural Server mounted.")
 
 def main():
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # HF Spaces uses port 7860; locally use 8000
+    port = int(os.environ.get("PORT", 7860))
+    logger.info(f"Starting NeonGrid on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()

@@ -15,8 +15,8 @@ COPY . .
 # Ensure the server can be found
 ENV PYTHONPATH=/app
 
-# Expose the application port
-EXPOSE 8000
+# HF Spaces requires port 7860 for Docker SDK spaces
+EXPOSE 7860
 
 # Run the FastAPI application
 CMD ["uv", "run", "python3", "server/app.py"]
