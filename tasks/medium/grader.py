@@ -1,15 +1,15 @@
 """
-Grader for the 'easy' task — Bright Day scenario.
+Grader for the 'medium' task — Evening Peak scenario.
 
-Evaluates agent performance on a sunny morning with low grid prices.
-A good agent should charge the battery during cheap solar hours
-and maintain high comfort.
+Evaluates agent performance during an evening peak transition
+with cloudy weather. A good agent should strategically discharge
+the battery when grid prices spike and reduce consumption.
 """
 
 
 def grade(trajectory: list) -> float:
     """
-    Grade the agent's trajectory for the easy task.
+    Grade the agent's trajectory for the medium task.
 
     Args:
         trajectory: List of (action, observation) dicts from the episode.
@@ -35,7 +35,5 @@ def grade(trajectory: list) -> float:
         return 0.0
 
     avg_reward = total_reward / steps
-
-    # Normalize to 0-1 range (rewards are typically 0-1 in this env)
     score = max(0.0, min(1.0, avg_reward))
     return score

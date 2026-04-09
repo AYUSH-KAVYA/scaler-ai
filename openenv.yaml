@@ -1,5 +1,6 @@
 spec_version: 1
 name: neongrid_env
+description: "NeonGrid AI Energy Architect — manage a futuristic city's energy grid."
 type: space
 runtime: fastapi
 app: server.app:app
@@ -9,15 +10,14 @@ tasks:
     name: "Bright Day"
     description: "Bright day with low grid prices. Focus on efficiency."
     difficulty: easy
-    grader: "tasks.easy_grader:grade"
+    grader: "tasks.easy.grader:grade"
   - id: medium
     name: "Evening Peak"
     description: "Evening peak transition with cloudy weather. Manage battery carefully."
     difficulty: medium
-    grader: "tasks.medium_grader:grade"
+    grader: "tasks.medium.grader:grade"
   - id: hard
     name: "Storm Surge"
     description: "Stormy conditions during high-demand peak. Minimize grid dependency."
     difficulty: hard
-    grader: "tasks.hard_grader:grade"
-
+    grader: "tasks.hard.grader:grade"

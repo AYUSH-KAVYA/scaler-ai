@@ -1,15 +1,15 @@
 """
-Grader for the 'medium' task — Evening Peak scenario.
+Grader for the 'hard' task — Storm Surge scenario.
 
-Evaluates agent performance during an evening peak transition
-with cloudy weather. A good agent should strategically discharge
-the battery when grid prices spike and reduce consumption.
+Evaluates agent performance during stormy conditions at peak demand.
+Zero solar, maximum grid prices. A good agent must balance extreme
+trade-offs between cost and citizen comfort.
 """
 
 
 def grade(trajectory: list) -> float:
     """
-    Grade the agent's trajectory for the medium task.
+    Grade the agent's trajectory for the hard task.
 
     Args:
         trajectory: List of (action, observation) dicts from the episode.
@@ -35,7 +35,5 @@ def grade(trajectory: list) -> float:
         return 0.0
 
     avg_reward = total_reward / steps
-
-    # Normalize to 0-1 range
     score = max(0.0, min(1.0, avg_reward))
     return score
