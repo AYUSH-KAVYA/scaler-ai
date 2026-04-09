@@ -6,17 +6,18 @@ app: server.app:app
 port: 8000
 tasks:
   - id: easy
+    name: "Bright Day"
     description: "Bright day with low grid prices. Focus on efficiency."
-    grader:
-      type: reward
-      threshold: 0.5
+    difficulty: easy
+    grader: "tasks.easy_grader:grade"
   - id: medium
+    name: "Evening Peak"
     description: "Evening peak transition with cloudy weather. Manage battery carefully."
-    grader:
-      type: reward
-      threshold: 0.5
+    difficulty: medium
+    grader: "tasks.medium_grader:grade"
   - id: hard
+    name: "Storm Surge"
     description: "Stormy conditions during high-demand peak. Minimize grid dependency."
-    grader:
-      type: reward
-      threshold: 0.5
+    difficulty: hard
+    grader: "tasks.hard_grader:grade"
+
