@@ -7,7 +7,16 @@ port: 8000
 tasks:
   - id: easy
     description: "Bright day with low grid prices. Focus on efficiency."
+    grader:
+      type: reward
+      threshold: 0.5
   - id: medium
     description: "Evening peak transition with cloudy weather. Manage battery carefully."
+    grader:
+      type: reward
+      threshold: 0.5
   - id: hard
     description: "Stormy conditions during high-demand peak. Minimize grid dependency."
+    grader:
+      type: reward
+      threshold: 0.5
