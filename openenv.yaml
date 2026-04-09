@@ -6,6 +6,11 @@ runtime: fastapi
 app: server.app:app
 port: 8000
 tasks:
+  - id: tutorial
+    name: "Tutorial"
+    description: "Basic grid stabilization. High solar, low demand."
+    difficulty: easy
+    grader: "tasks.tutorial.grader:grade"
   - id: easy
     name: "Bright Day"
     description: "Bright day with low grid prices. Focus on efficiency."
@@ -21,3 +26,8 @@ tasks:
     description: "Stormy conditions during high-demand peak. Minimize grid dependency."
     difficulty: hard
     grader: "tasks.hard.grader:grade"
+  - id: extreme
+    name: "Extreme Condition"
+    description: "Catastrophic failure mitigation. Prevent total blackout."
+    difficulty: hard
+    grader: "tasks.extreme.grader:grade"
